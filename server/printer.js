@@ -38,69 +38,48 @@ class PrinterManager {
     }
 
     try {
-      // Get company settings (you can customize these)
-      const companyName = 'Supermarket POS';
-      const companyAddress = '123 Main St, City, State';
-      const phone = '+1 (555) 123-4567';
-
-      // Start printing
+      // Clean header with asterisks
       this.printer.alignCenter();
+      this.printer.println('************************');
       this.printer.bold(true);
-      this.printer.println(companyName);
+      this.printer.println('CASH RECEIPT');
       this.printer.bold(false);
-      this.printer.println(companyAddress);
-      this.printer.println(phone);
-      this.printer.drawLine();
+      this.printer.println('************************');
 
-      // Transaction header
+      // Items section with headers
       this.printer.alignLeft();
-      this.printer.println(`Transaction #: ${transaction.id}`);
-      this.printer.println(`Date: ${new Date(transaction.created_at).toLocaleString()}`);
-      this.printer.println(`Cashier: ${transaction.cashier_name || 'Unknown'}`);
-      this.printer.drawLine();
-
-      // Items
-      this.printer.println('ITEMS:');
-      this.printer.drawLine();
-
+      this.printer.bold(true);
+      this.printer.println('Description                    Price');
+      this.printer.bold(false);
+      
+      // Print each item
       transaction.items.forEach((item) => {
-        this.printer.println(`${item.name}`);
-        this.printer.println(`  ${item.quantity} x $${item.unit_price.toFixed(2)} = $${item.subtotal.toFixed(2)}`);
+        const name = item.name.length > 20 ? item.name.substring(0, 20) : item.name;
+        const price = item.unit_price.toFixed(2);
+        this.printer.println(`${name.padEnd(20)}${price.padStart(10)}`);
       });
 
-      this.printer.drawLine();
+      // Separator line
+      this.printer.println('************************');
 
       // Calculate totals
       const subtotal = transaction.items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
-      const discount = transaction.discount_amount || 0;
-      const total = subtotal - discount;
+      const total = subtotal; // No discount
+      const cashReceived = transaction.cash_received || total; // Default to total if not specified
+      const change = cashReceived - total;
 
-      this.printer.alignRight();
-      this.printer.println(`Subtotal: ₨${subtotal.toFixed(2)}`);
-      
-      if (discount > 0) {
-        this.printer.println(`Discount: -₨${discount.toFixed(2)}`);
-      }
-
+      // Summary section
       this.printer.bold(true);
-      this.printer.println(`Total: ₨${total.toFixed(2)}`);
+      this.printer.println(`Total:${total.toFixed(2).padStart(25)}`);
+      this.printer.println(`Cash:${cashReceived.toFixed(2).padStart(25)}`);
+      this.printer.println(`Change:${change.toFixed(2).padStart(23)}`);
       this.printer.bold(false);
-
-      // Payment method
-      this.printer.alignLeft();
-      this.printer.println(`Payment: ${transaction.payment_method.toUpperCase()}`);
-
-      // Customer info if available
-      if (transaction.customer_email) {
-        this.printer.println(`Customer: ${transaction.customer_email}`);
-      }
 
       // Footer
       this.printer.alignCenter();
-      this.printer.drawLine();
+      this.printer.println('************************');
       this.printer.println('Thank you for your purchase!');
-      this.printer.println('Please come again');
-      this.printer.drawLine();
+      this.printer.println('************************');
 
       // Cut paper
       this.printer.cut();

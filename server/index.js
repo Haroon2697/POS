@@ -768,6 +768,64 @@ app.get('/api/reports/sales', authenticateToken, (req, res) => {
   });
 });
 
+// Print Receipt API
+app.post('/api/print-receipt', authenticateToken, async (req, res) => {
+  try {
+    const { transaction_id, cash_received } = req.body;
+    
+    if (!transaction_id) {
+      return res.status(400).json({ error: 'Transaction ID is required' });
+    }
+
+    // Get transaction details
+    db.get('SELECT * FROM transactions WHERE id = ?', [transaction_id], async (err, transaction) => {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (!transaction) {
+        return res.status(404).json({ error: 'Transaction not found' });
+      }
+
+      // Get transaction items
+      db.all('SELECT * FROM transaction_items WHERE transaction_id = ?', [transaction_id], async (err, items) => {
+        if (err) {
+          return res.status(500).json({ error: 'Database error' });
+        }
+
+        // Format items for printing
+        const formattedItems = items.map(item => ({
+          name: item.product_name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.quantity * item.unit_price
+        }));
+
+        // Create receipt data
+        const receiptData = {
+          id: transaction.id,
+          items: formattedItems,
+          total: transaction.total,
+          cash_received: cash_received || transaction.total,
+          created_at: transaction.created_at,
+          cashier_name: req.user.username
+        };
+
+        // Print receipt
+        if (printerManager) {
+          await printerManager.printReceipt(receiptData);
+          res.json({ message: 'Receipt printed successfully' });
+        } else {
+          res.status(500).json({ error: 'Printer not available' });
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Print receipt error:', error);
+    res.status(500).json({ error: 'Failed to print receipt' });
+  }
+});
+
 app.get('/api/reports/inventory', authenticateToken, (req, res) => {
   db.all(`
     SELECT 
