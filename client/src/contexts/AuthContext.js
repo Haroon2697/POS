@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -12,32 +12,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check if user is already logged in
-    const token = localStorage.getItem('pos_token');
-    const userData = localStorage.getItem('pos_user');
-    
-    if (token && userData) {
-      try {
-        const user = JSON.parse(userData);
-        setUser(user);
-        
-        // Set default authorization header
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        // Set up axios interceptor to handle token expiration
-        setupAxiosInterceptors();
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('pos_token');
-        localStorage.removeItem('pos_user');
-      }
-    }
-    
-    setLoading(false);
-  }, []);
-
-  const setupAxiosInterceptors = () => {
+  const setupAxiosInterceptors = useCallback(() => {
     // Add response interceptor to handle token expiration
     axios.interceptors.response.use(
       (response) => response,
@@ -71,7 +46,44 @@ export function AuthProvider({ children }) {
         return Promise.reject(error);
       }
     );
-  };
+  }, []);
+
+  const logout = useCallback(() => {
+    // Remove stored data
+    localStorage.removeItem('pos_token');
+    localStorage.removeItem('pos_user');
+    
+    // Remove authorization header
+    delete axios.defaults.headers.common['Authorization'];
+    
+    setUser(null);
+    toast.success('Logged out successfully');
+  }, []);
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const token = localStorage.getItem('pos_token');
+    const userData = localStorage.getItem('pos_user');
+    
+    if (token && userData) {
+      try {
+        const user = JSON.parse(userData);
+        setUser(user);
+        
+        // Set default authorization header
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        // Set up axios interceptor to handle token expiration
+        setupAxiosInterceptors();
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        localStorage.removeItem('pos_token');
+        localStorage.removeItem('pos_user');
+      }
+    }
+    
+    setLoading(false);
+  }, [setupAxiosInterceptors]);
 
   const login = async (username, password) => {
     try {
@@ -96,18 +108,6 @@ export function AuthProvider({ children }) {
       toast.error(message);
       return { success: false, error: message };
     }
-  };
-
-  const logout = () => {
-    // Remove stored data
-    localStorage.removeItem('pos_token');
-    localStorage.removeItem('pos_user');
-    
-    // Remove authorization header
-    delete axios.defaults.headers.common['Authorization'];
-    
-    setUser(null);
-    toast.success('Logged out successfully');
   };
 
   const updateUser = (updatedUser) => {

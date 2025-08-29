@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   ShoppingCart, 
@@ -49,7 +49,7 @@ function POS() {
     }
   };
 
-  const addToCart = (product) => {
+  const addToCart = useCallback((product) => {
     const existingItem = cart.find(item => item.id === product.id);
     
     if (existingItem) {
@@ -68,7 +68,7 @@ function POS() {
     }
     
     toast.success(`${product.name} added to cart`);
-  };
+  }, [cart]);
 
   const updateQuantity = (productId, newQuantity) => {
     if (newQuantity <= 0) {
@@ -199,7 +199,7 @@ function POS() {
         controlsRef.current?.stop?.();
       } catch {}
     };
-  }, [scanning]);
+  }, [scanning, addToCart]);
 
   const getSubtotal = () => {
     return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -299,7 +299,7 @@ function POS() {
                 onClick={() => setScanning(!scanning)}
                 className={`btn ${scanning ? 'btn-danger' : 'btn-primary'}`}
               >
-                <QrCode className="h-5 w-5 mr-2" />
+                <QrCode className="w-5 h-5 mr-2" />
                 {scanning ? 'Stop Scan' : 'Scan Barcode'}
               </button>
             </div>
@@ -308,10 +308,10 @@ function POS() {
           {/* Scanner */}
           {scanning && (
             <div className="mb-6 scanner-container">
-              <video id="pos-barcode-video" width="400" height="300" className="rounded-lg bg-black" muted playsInline />
+              <video id="pos-barcode-video" width="400" height="300" className="bg-black rounded-lg" muted playsInline />
               <div className="scanner-overlay">
                 <div className="text-center">
-                  <QrCode className="h-16 w-16 mx-auto mb-4" />
+                  <QrCode className="w-16 h-16 mx-auto mb-4" />
                   <p>Position barcode in view</p>
                 </div>
               </div>
@@ -319,16 +319,16 @@ function POS() {
           )}
 
           {/* Search */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 gap-4 mb-6 md:grid-cols-2">
             <form onSubmit={handleSearch}>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Search className="absolute w-5 h-5 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search products by name or barcode..."
-                  className="input pl-10 text-lg"
+                  className="pl-10 text-lg input"
                 />
               </div>
             </form>
@@ -339,7 +339,7 @@ function POS() {
                   value={barcodeInput}
                   onChange={(e) => setBarcodeInput(e.target.value)}
                   placeholder="Enter barcode manually"
-                  className="input flex-1 mr-2"
+                  className="flex-1 mr-2 input"
                 />
                 <button type="submit" className="btn-primary">Add</button>
               </div>
@@ -351,14 +351,14 @@ function POS() {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                className="p-4 transition-shadow bg-white border border-gray-200 rounded-lg cursor-pointer hover:shadow-md"
                 onClick={() => addToCart(product)}
               >
                 <div className="text-center">
-                  <div className="h-20 w-20 mx-auto bg-gray-100 rounded-lg flex items-center justify-center mb-3">
-                    <Package className="h-10 w-10 text-gray-400" />
+                  <div className="flex items-center justify-center w-20 h-20 mx-auto mb-3 bg-gray-100 rounded-lg">
+                    <Package className="w-10 h-10 text-gray-400" />
                   </div>
-                  <h3 className="font-medium text-gray-900 text-sm mb-1 truncate">
+                  <h3 className="mb-1 text-sm font-medium text-gray-900 truncate">
                     {product.name}
                   </h3>
                   <p className="text-lg font-bold text-primary-600">
@@ -368,7 +368,7 @@ function POS() {
                     Stock: {product.stock}
                   </p>
                   {product.barcode && (
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="mt-1 text-xs text-gray-400">
                       {product.barcode}
                     </p>
                   )}
@@ -378,8 +378,8 @@ function POS() {
           </div>
 
           {filteredProducts.length === 0 && searchTerm && (
-            <div className="text-center py-8 text-gray-500">
-              <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <div className="py-8 text-center text-gray-500">
+              <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
               <p>No products found</p>
             </div>
           )}
@@ -388,32 +388,32 @@ function POS() {
 
       {/* Cart Sidebar */}
       <div className="pos-sidebar">
-        <div className="card h-full">
+        <div className="h-full card">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-gray-900">Shopping Cart</h2>
-            <ShoppingCart className="h-6 w-6 text-primary-600" />
+            <ShoppingCart className="w-6 h-6 text-primary-600" />
           </div>
 
           {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto space-y-3 mb-6">
+          <div className="flex-1 mb-6 space-y-3 overflow-y-auto">
             {cart.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <div className="py-8 text-center text-gray-500">
+                <ShoppingCart className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                 <p>Cart is empty</p>
                 <p className="text-sm">Add products to get started</p>
               </div>
             ) : (
               cart.map((item) => (
-                <div key={item.id} className="cart-item bg-gray-50 rounded-lg p-3">
+                <div key={item.id} className="p-3 rounded-lg cart-item bg-gray-50">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium text-gray-900 text-sm truncate">
+                    <h3 className="text-sm font-medium text-gray-900 truncate">
                       {item.name}
                     </h3>
                     <button
                       onClick={() => removeFromCart(item.id)}
                       className="text-red-500 hover:text-red-700"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                   
@@ -421,9 +421,9 @@ function POS() {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                        className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full hover:bg-gray-300"
                       >
-                        <Minus className="h-4 w-4" />
+                        <Minus className="w-4 h-4" />
                       </button>
                       <input
                         type="number"
@@ -434,13 +434,13 @@ function POS() {
                           const val = Math.max(1, Math.min(Number(e.target.value) || 1, item.stock));
                           updateQuantity(item.id, val);
                         }}
-                        className="w-16 text-center border border-gray-300 rounded-md py-1"
+                        className="w-16 py-1 text-center border border-gray-300 rounded-md"
                       />
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
+                        className="flex items-center justify-center w-8 h-8 bg-gray-200 rounded-full hover:bg-gray-300"
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="w-4 h-4" />
                       </button>
                     </div>
                     <div className="text-right">
@@ -459,7 +459,7 @@ function POS() {
 
           {/* Cart Summary */}
           {cart.length > 0 && (
-            <div className="border-t border-gray-200 pt-4 space-y-3">
+            <div className="pt-4 space-y-3 border-t border-gray-200">
               <div className="flex justify-between text-sm">
                 <span>Subtotal:</span>
                 <span>${getSubtotal().toFixed(2)}</span>
@@ -474,7 +474,7 @@ function POS() {
                   <span>-${discountAmount.toFixed(2)}</span>
                 </div>
               )}
-              <div className="border-t border-gray-200 pt-2">
+              <div className="pt-2 border-t border-gray-200">
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total:</span>
                   <span>${getTotal().toFixed(2)}</span>
@@ -487,9 +487,9 @@ function POS() {
           {cart.length > 0 && (
             <button
               onClick={() => setShowCheckout(true)}
-              className="w-full btn-success text-lg py-3 mt-4"
+              className="w-full py-3 mt-4 text-lg btn-success"
             >
-              <CreditCard className="h-5 w-5 mr-2" />
+              <CreditCard className="w-5 h-5 mr-2" />
               Checkout
             </button>
           )}
@@ -499,25 +499,25 @@ function POS() {
       {/* Checkout Modal */}
       {showCheckout && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" />
             
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="px-4 pt-5 pb-4 bg-white sm:p-6 sm:pb-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">Complete Checkout</h3>
                   <button
                     onClick={() => setShowCheckout(false)}
                     className="text-gray-400 hover:text-gray-600"
                   >
-                    <X className="h-6 w-6" />
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
 
                 <div className="space-y-4">
                   {/* Payment Method */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
                       Payment Method
                     </label>
                     <div className="flex space-x-3">
@@ -530,7 +530,7 @@ function POS() {
                             : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                         }`}
                       >
-                        <DollarSign className="h-4 w-4 mr-2" />
+                        <DollarSign className="w-4 h-4 mr-2" />
                         Cash
                       </button>
                       <button
@@ -542,7 +542,7 @@ function POS() {
                             : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                         }`}
                       >
-                        <CreditCard className="h-4 w-4 mr-2" />
+                        <CreditCard className="w-4 h-4 mr-2" />
                         Card
                       </button>
                     </div>
@@ -550,7 +550,7 @@ function POS() {
 
                   {/* Customer Email */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
                       Customer Email (Optional)
                     </label>
                     <input
@@ -564,7 +564,7 @@ function POS() {
 
                   {/* Discount */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
                       Discount Amount
                     </label>
                     <input
@@ -580,7 +580,7 @@ function POS() {
                   </div>
 
                   {/* Final Total */}
-                  <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="p-3 rounded-lg bg-gray-50">
                     <div className="text-center">
                       <p className="text-sm text-gray-600">Total Amount</p>
                       <p className="text-2xl font-bold text-primary-600">
@@ -591,7 +591,7 @@ function POS() {
                 </div>
               </div>
 
-              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+              <div className="px-4 py-3 bg-gray-50 sm:px-6 sm:flex sm:flex-row-reverse">
                 <button
                   type="button"
                   onClick={handleCheckout}
@@ -600,12 +600,12 @@ function POS() {
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="w-4 h-4 mr-2 border-b-2 border-white rounded-full animate-spin"></div>
                       Processing...
                     </>
                   ) : (
                     <>
-                      <Receipt className="h-4 w-4 mr-2" />
+                      <Receipt className="w-4 h-4 mr-2" />
                       Complete Sale
                     </>
                   )}
@@ -613,7 +613,7 @@ function POS() {
                 <button
                   type="button"
                   onClick={() => setShowCheckout(false)}
-                  className="mt-3 w-full btn-secondary sm:mt-0 sm:w-auto"
+                  className="w-full mt-3 btn-secondary sm:mt-0 sm:w-auto"
                 >
                   Cancel
                 </button>

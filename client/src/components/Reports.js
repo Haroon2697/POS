@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, DollarSign, ShoppingCart } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -8,12 +8,7 @@ function Reports() {
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('7'); // 7, 30, 90 days
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    fetchSalesData();
-  }, [dateRange]);
-
-  const fetchSalesData = async () => {
+  const fetchSalesData = useCallback(async () => {
     try {
       setLoading(true);
       const endDate = new Date().toISOString().split('T')[0];
@@ -26,7 +21,12 @@ function Reports() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    fetchSalesData();
+  }, [fetchSalesData]);
 
   const totalRevenue = salesData.reduce((sum, day) => sum + day.revenue, 0);
   const totalTransactions = salesData.reduce((sum, day) => sum + day.transactions, 0);
