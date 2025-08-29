@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, DollarSign, ShoppingCart } from 'lucide-react';
+import { TrendingUp, ShoppingCart } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -69,12 +69,12 @@ function Reports() {
         <div className="card">
           <div className="flex items-center">
             <div className="p-3 bg-green-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-green-600" />
+              <TrendingUp className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Revenue</p>
               <p className="text-2xl font-bold text-gray-900">
-                ${totalRevenue.toFixed(2)}
+                ₨{totalRevenue.toFixed(2)}
               </p>
             </div>
           </div>
@@ -102,7 +102,7 @@ function Reports() {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Average Transaction</p>
               <p className="text-2xl font-bold text-gray-900">
-                ${averageTransaction.toFixed(2)}
+                ₨{averageTransaction.toFixed(2)}
               </p>
             </div>
           </div>
@@ -141,7 +141,7 @@ function Reports() {
                   </div>
                 </div>
                 <div className="w-16 text-right text-sm font-medium text-gray-900">
-                  ${day.revenue.toFixed(2)}
+                  ₨{day.revenue.toFixed(2)}
                 </div>
                 <div className="w-16 text-right text-sm text-gray-500">
                   {day.transactions} sales

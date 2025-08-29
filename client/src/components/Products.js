@@ -30,6 +30,11 @@ function Products() {
     description: ''
   });
 
+  const [duplicateWarnings, setDuplicateWarnings] = useState({
+    name: null,
+    barcode: null
+  });
+
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -53,6 +58,12 @@ function Products() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Check for duplicates before submitting
+    if (duplicateWarnings.name || duplicateWarnings.barcode) {
+      toast.error('Please fix duplicate entries before saving');
+      return;
+    }
+    
     try {
       if (editingProduct) {
         await axios.put(`/api/products/${editingProduct.id}`, formData);
@@ -67,7 +78,43 @@ function Products() {
       resetForm();
       fetchProducts();
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to save product');
+      const errorData = error.response?.data;
+      
+      if (errorData?.duplicateType === 'name') {
+        // Show detailed duplicate name error
+        toast.error(
+          <div>
+            <div className="font-semibold">Duplicate Product Name</div>
+            <div className="text-sm">{errorData.error}</div>
+            {errorData.existingProduct && (
+              <div className="text-xs text-gray-600 mt-1">
+                Existing Product ID: {errorData.existingProduct.id}
+                {errorData.existingProduct.barcode && (
+                  <span> | Barcode: {errorData.existingProduct.barcode}</span>
+                )}
+              </div>
+            )}
+          </div>,
+          { duration: 6000 }
+        );
+      } else if (errorData?.duplicateType === 'barcode') {
+        // Show detailed duplicate barcode error
+        toast.error(
+          <div>
+            <div className="font-semibold">Duplicate Barcode</div>
+            <div className="text-sm">{errorData.error}</div>
+            {errorData.existingProduct && (
+              <div className="text-xs text-gray-600 mt-1">
+                Existing Product: {errorData.existingProduct.name} (ID: {errorData.existingProduct.id})
+              </div>
+            )}
+          </div>,
+          { duration: 6000 }
+        );
+      } else {
+        // Show general error
+        toast.error(errorData?.error || 'Failed to save product');
+      }
     }
   };
 
@@ -81,6 +128,7 @@ function Products() {
       category: product.category || '',
       description: product.description || ''
     });
+    setDuplicateWarnings({ name: null, barcode: null });
     setShowAddModal(true);
   };
 
@@ -107,6 +155,69 @@ function Products() {
       category: '',
       description: ''
     });
+    setDuplicateWarnings({ name: null, barcode: null });
+  };
+
+  // Check for duplicate product name
+  const checkDuplicateName = (name) => {
+    if (!name.trim()) {
+      setDuplicateWarnings(prev => ({ ...prev, name: null }));
+      return;
+    }
+    
+    const existingProduct = products.find(p => 
+      p.id !== editingProduct?.id && 
+      p.name.toLowerCase() === name.toLowerCase()
+    );
+    
+    if (existingProduct) {
+      setDuplicateWarnings(prev => ({
+        ...prev,
+        name: {
+          message: `Product "${existingProduct.name}" already exists`,
+          existingProduct
+        }
+      }));
+    } else {
+      setDuplicateWarnings(prev => ({ ...prev, name: null }));
+    }
+  };
+
+  // Check for duplicate barcode
+  const checkDuplicateBarcode = (barcode) => {
+    if (!barcode.trim()) {
+      setDuplicateWarnings(prev => ({ ...prev, barcode: null }));
+      return;
+    }
+    
+    const existingProduct = products.find(p => 
+      p.id !== editingProduct?.id && 
+      p.barcode === barcode.trim()
+    );
+    
+    if (existingProduct) {
+      setDuplicateWarnings(prev => ({
+        ...prev,
+        barcode: {
+          message: `Barcode "${barcode}" is already assigned to "${existingProduct.name}"`,
+          existingProduct
+        }
+      }));
+    } else {
+      setDuplicateWarnings(prev => ({ ...prev, barcode: null }));
+    }
+  };
+
+  // Handle form field changes with duplicate checking
+  const handleFormChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Check for duplicates when name or barcode changes
+    if (field === 'name') {
+      checkDuplicateName(value);
+    } else if (field === 'barcode') {
+      checkDuplicateBarcode(value);
+    }
   };
 
   const filteredProducts = products.filter(product => {
@@ -252,7 +363,7 @@ function Products() {
                           {product.barcode || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          ${product.price.toFixed(2)}
+                          ₨{product.price.toFixed(2)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${stockStatus.bg} ${stockStatus.color}`}>
@@ -311,10 +422,15 @@ function Products() {
                       type="text"
                       required
                       value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      onChange={(e) => handleFormChange('name', e.target.value)}
                       className="input"
                       placeholder="Enter product name"
                     />
+                    {duplicateWarnings.name && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {duplicateWarnings.name.message}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -324,10 +440,15 @@ function Products() {
                     <input
                       type="text"
                       value={formData.barcode}
-                      onChange={(e) => setFormData({...formData, barcode: e.target.value})}
+                      onChange={(e) => handleFormChange('barcode', e.target.value)}
                       className="input"
                       placeholder="Enter barcode (optional)"
                     />
+                    {duplicateWarnings.barcode && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {duplicateWarnings.barcode.message}
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

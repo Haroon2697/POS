@@ -19,12 +19,10 @@ function Settings() {
   const [backupStatus, setBackupStatus] = useState('idle');
 
   const [formData, setFormData] = useState({
-    company_name: '',
-    company_address: '',
-    tax_rate: '',
     backup_enabled: false,
     printer_enabled: false,
-    printer_interface: ''
+    company_name: '',
+    company_address: ''
   });
 
   useEffect(() => {
@@ -39,7 +37,6 @@ function Settings() {
       setFormData({
         company_name: response.data.company_name || '',
         company_address: response.data.company_address || '',
-        tax_rate: response.data.tax_rate || '0.08',
         backup_enabled: response.data.backup_enabled === 'true',
         printer_enabled: response.data.printer_enabled === 'true',
         printer_interface: response.data.printer_interface || 'usb://0x04b8/0x0202'
@@ -61,7 +58,6 @@ function Settings() {
       const updates = [
         ['company_name', formData.company_name],
         ['company_address', formData.company_address],
-        ['tax_rate', formData.tax_rate],
         ['backup_enabled', formData.backup_enabled.toString()],
         ['printer_enabled', formData.printer_enabled.toString()],
         ['printer_interface', formData.printer_interface]
@@ -163,24 +159,7 @@ function Settings() {
             <h2 className="text-lg font-medium text-gray-900">System Configuration</h2>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tax Rate (%)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="1"
-                value={formData.tax_rate}
-                onChange={(e) => setFormData({...formData, tax_rate: e.target.value})}
-                className="input"
-                placeholder="0.08"
-              />
-              <p className="text-xs text-gray-500 mt-1">Enter as decimal (e.g., 0.08 for 8%)</p>
-            </div>
-          </div>
+
         </div>
 
         {/* Backup Settings */}

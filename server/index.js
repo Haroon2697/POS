@@ -71,13 +71,11 @@ function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       cashier_id INTEGER NOT NULL,
       total REAL NOT NULL,
-      tax_amount REAL DEFAULT 0,
       discount_amount REAL DEFAULT 0,
       payment_method TEXT NOT NULL,
       customer_email TEXT,
-      status TEXT DEFAULT 'completed',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (cashier_id) REFERENCES users(id)
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (cashier_id) REFERENCES users (id)
     )`);
 
     // Transaction items table
@@ -132,7 +130,6 @@ function initializeDatabase() {
 
     // Insert default settings
     const defaultSettings = [
-      ['tax_rate', '0.08'],
       ['backup_enabled', 'false'],
       ['printer_enabled', 'false'],
       ['company_name', 'Supermarket POS'],
@@ -287,18 +284,76 @@ app.post('/api/products', authenticateToken, requireAdmin, (req, res) => {
   }
 
   const barcodeValue = barcode && String(barcode).trim() !== '' ? String(barcode).trim() : null;
+  const productName = String(name).trim();
 
-  db.run(
-    `INSERT INTO products (name, barcode, price, stock, category, description) VALUES (?, ?, ?, ?, ?, ?)`,
-    [name, barcodeValue, numericPrice, numericStock, category, description],
-    function (err) {
+  // Check for duplicate product name (case-insensitive)
+  db.get(
+    `SELECT id, name, barcode FROM products WHERE LOWER(name) = LOWER(?)`,
+    [productName],
+    (err, existingProduct) => {
       if (err) {
-        if (/(UNIQUE|unique) constraint failed: products\.barcode/.test(err.message)) {
-          return res.status(409).json({ error: 'Barcode already exists' });
-        }
-        return res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: 'Database error while checking for duplicates' });
       }
-      res.status(201).json({ id: this.lastID, message: 'Product created successfully' });
+
+      if (existingProduct) {
+        let errorMessage = `Product with name "${existingProduct.name}" already exists`;
+        if (existingProduct.barcode) {
+          errorMessage += ` (Barcode: ${existingProduct.barcode})`;
+        }
+        return res.status(409).json({ 
+          error: errorMessage,
+          duplicateType: 'name',
+          existingProduct: {
+            id: existingProduct.id,
+            name: existingProduct.name,
+            barcode: existingProduct.barcode
+          }
+        });
+      }
+
+      // If barcode is provided, check for duplicate barcode
+      if (barcodeValue) {
+        db.get(
+          `SELECT id, name, barcode FROM products WHERE barcode = ?`,
+          [barcodeValue],
+          (err, existingBarcode) => {
+            if (err) {
+              return res.status(500).json({ error: 'Database error while checking barcode' });
+            }
+
+            if (existingBarcode) {
+              return res.status(409).json({ 
+                error: `Barcode "${barcodeValue}" is already assigned to product "${existingBarcode.name}"`,
+                duplicateType: 'barcode',
+                existingProduct: {
+                  id: existingBarcode.id,
+                  name: existingBarcode.name,
+                  barcode: existingBarcode.barcode
+                }
+              });
+            }
+
+            // No duplicates found, proceed with insertion
+            insertProduct();
+          }
+        );
+      } else {
+        // No barcode provided, proceed with insertion
+        insertProduct();
+      }
+
+      function insertProduct() {
+        db.run(
+          `INSERT INTO products (name, barcode, price, stock, category, description) VALUES (?, ?, ?, ?, ?, ?)`,
+          [productName, barcodeValue, numericPrice, numericStock, category, description],
+          function (err) {
+            if (err) {
+              return res.status(500).json({ error: err.message });
+            }
+            res.status(201).json({ id: this.lastID, message: 'Product created successfully' });
+          }
+        );
+      }
     }
   );
 });
@@ -318,21 +373,79 @@ app.put('/api/products/:id', authenticateToken, requireAdmin, (req, res) => {
   }
 
   const barcodeValue = barcode && String(barcode).trim() !== '' ? String(barcode).trim() : null;
+  const productName = String(name).trim();
 
-  db.run(
-    `UPDATE products SET name = ?, barcode = ?, price = ?, stock = ?, category = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    [name, barcodeValue, numericPrice, numericStock, category, description, id],
-    function (err) {
+  // Check for duplicate product name (case-insensitive), excluding current product
+  db.get(
+    `SELECT id, name, barcode FROM products WHERE LOWER(name) = LOWER(?) AND id != ?`,
+    [productName, id],
+    (err, existingProduct) => {
       if (err) {
-        if (/(UNIQUE|unique) constraint failed: products\.barcode/.test(err.message)) {
-          return res.status(409).json({ error: 'Barcode already exists' });
+        return res.status(500).json({ error: 'Database error while checking for duplicates' });
+      }
+
+      if (existingProduct) {
+        let errorMessage = `Product with name "${existingProduct.name}" already exists`;
+        if (existingProduct.barcode) {
+          errorMessage += ` (Barcode: ${existingProduct.barcode})`;
         }
-        return res.status(500).json({ error: err.message });
+        return res.status(409).json({ 
+          error: errorMessage,
+          duplicateType: 'name',
+          existingProduct: {
+            id: existingProduct.id,
+            name: existingProduct.name,
+            barcode: existingProduct.barcode
+          }
+        });
       }
-      if (this.changes === 0) {
-        return res.status(404).json({ error: 'Product not found' });
+
+      // If barcode is provided, check for duplicate barcode, excluding current product
+      if (barcodeValue) {
+        db.get(
+          `SELECT id, name, barcode FROM products WHERE barcode = ? AND id != ?`,
+          [barcodeValue, id],
+          (err, existingBarcode) => {
+            if (err) {
+              return res.status(500).json({ error: 'Database error while checking barcode' });
+            }
+
+            if (existingBarcode) {
+              return res.status(409).json({ 
+                error: `Barcode "${barcodeValue}" is already assigned to product "${existingBarcode.name}"`,
+                duplicateType: 'barcode',
+                existingProduct: {
+                  id: existingBarcode.id,
+                  name: existingBarcode.name,
+                  barcode: existingBarcode.barcode
+                }
+              });
+            }
+
+            // No duplicates found, proceed with update
+            updateProduct();
+          }
+        );
+      } else {
+        // No barcode provided, proceed with update
+        updateProduct();
       }
-      res.json({ message: 'Product updated successfully' });
+
+      function updateProduct() {
+        db.run(
+          `UPDATE products SET name = ?, barcode = ?, price = ?, stock = ?, category = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          [productName, barcodeValue, numericPrice, numericStock, category, description, id],
+          function (err) {
+            if (err) {
+              return res.status(500).json({ error: err.message });
+            }
+            if (this.changes === 0) {
+              return res.status(404).json({ error: 'Product not found' });
+            }
+            res.json({ message: 'Product updated successfully' });
+          }
+        );
+      }
     }
   );
 });
@@ -353,7 +466,7 @@ app.delete('/api/products/:id', authenticateToken, requireAdmin, (req, res) => {
 
 // Transactions API
 app.post('/api/transactions', authenticateToken, (req, res) => {
-  const { items, payment_method, customer_email, tax_amount = 0, discount_amount = 0 } = req.body;
+  const { items, payment_method, customer_email, discount_amount = 0 } = req.body;
   const cashier_id = req.user.id;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
@@ -365,7 +478,7 @@ app.post('/api/transactions', authenticateToken, (req, res) => {
   }
 
   const total = items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
-  const final_total = total + tax_amount - discount_amount;
+  const final_total = total - discount_amount;
 
   // Pre-check stock availability
   let checked = 0;
@@ -392,9 +505,9 @@ app.post('/api/transactions', authenticateToken, (req, res) => {
         db.run('BEGIN TRANSACTION', (err) => {
           if (err) return res.status(500).json({ error: 'Failed to begin transaction' });
 
-          db.run(
-            `INSERT INTO transactions (cashier_id, total, tax_amount, discount_amount, payment_method, customer_email) VALUES (?, ?, ?, ?, ?, ?)`,
-            [cashier_id, final_total, tax_amount, discount_amount, payment_method, customer_email],
+                      db.run(
+              `INSERT INTO transactions (cashier_id, total, discount_amount, payment_method, customer_email) VALUES (?, ?, ?, ?, ?)`,
+              [cashier_id, final_total, discount_amount, payment_method, customer_email],
             function (err) {
               if (err) {
                 db.run('ROLLBACK');

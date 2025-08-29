@@ -70,25 +70,20 @@ class PrinterManager {
 
       this.printer.drawLine();
 
-      // Totals
-      const subtotal = transaction.items.reduce((sum, item) => sum + item.subtotal, 0);
-      const tax = transaction.tax_amount || 0;
+      // Calculate totals
+      const subtotal = transaction.items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
       const discount = transaction.discount_amount || 0;
-      const total = transaction.total;
+      const total = subtotal - discount;
 
       this.printer.alignRight();
-      this.printer.println(`Subtotal: $${subtotal.toFixed(2)}`);
-      
-      if (tax > 0) {
-        this.printer.println(`Tax: $${tax.toFixed(2)}`);
-      }
+      this.printer.println(`Subtotal: ₨${subtotal.toFixed(2)}`);
       
       if (discount > 0) {
-        this.printer.println(`Discount: -$${discount.toFixed(2)}`);
+        this.printer.println(`Discount: -₨${discount.toFixed(2)}`);
       }
 
       this.printer.bold(true);
-      this.printer.println(`TOTAL: $${total.toFixed(2)}`);
+      this.printer.println(`Total: ₨${total.toFixed(2)}`);
       this.printer.bold(false);
 
       // Payment method
