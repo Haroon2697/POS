@@ -2,7 +2,7 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -150,8 +150,13 @@ function initializeDatabase() {
 // Backup initialization
 let backupManager = null;
 async function initializeBackup() {
-  backupManager = new BackupManager();
-  await backupManager.initialize();
+  try {
+    backupManager = new BackupManager();
+    await backupManager.initialize();
+  } catch (error) {
+    console.log('Backup system disabled due to configuration error:', error.message);
+    backupManager = null;
+  }
 }
 
 // Authentication middleware
@@ -209,7 +214,7 @@ app.post('/api/login', (req, res) => {
       const token = jwt.sign(
         { id: user.id, username: user.username, role: user.role },
         JWT_SECRET,
-        { expiresIn: '24h' }
+        { expiresIn: '7d' }
       );
 
       res.json({
@@ -221,6 +226,25 @@ app.post('/api/login', (req, res) => {
         }
       });
     });
+  });
+});
+
+// Token refresh endpoint
+app.post('/api/refresh-token', authenticateToken, (req, res) => {
+  // Generate new token with extended expiration
+  const token = jwt.sign(
+    { id: req.user.id, username: req.user.username, role: req.user.role },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  res.json({
+    token,
+    user: {
+      id: req.user.id,
+      username: req.user.username,
+      role: req.user.role
+    }
   });
 });
 
