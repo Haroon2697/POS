@@ -16,7 +16,7 @@
 
 @layer components {
   .btn {
-    @apply px-3 py-1.5 rounded-md font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-sm;
+    @apply px-2 py-1 rounded-md font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 text-xs;
   }
   
   .btn-primary {
@@ -36,27 +36,27 @@
   }
   
   .btn-sm {
-    @apply px-2 py-1 text-xs rounded;
+    @apply px-1.5 py-0.5 text-xs rounded;
   }
   
   .btn-lg {
-    @apply px-4 py-2 text-base rounded-lg;
+    @apply px-3 py-1.5 text-sm rounded-md;
   }
   
   .input {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm;
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4;
+    @apply bg-white rounded-md shadow-sm border border-gray-200 p-3;
   }
   
   .card-lg {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4;
   }
   
   .pos-grid {
-    @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-4;
   }
   
   .pos-sidebar {
@@ -69,19 +69,19 @@
   
   /* Compact product card styles */
   .product-card {
-    @apply bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow;
-  }
-  
-  .product-card-compact {
     @apply bg-white rounded-md border border-gray-200 p-2 cursor-pointer hover:shadow-sm transition-shadow;
   }
   
+  .product-card-compact {
+    @apply bg-white rounded border border-gray-200 p-1.5 cursor-pointer hover:shadow-sm transition-shadow;
+  }
+  
   .product-grid {
-    @apply grid grid-cols-3 gap-3;
+    @apply grid grid-cols-4 gap-2;
   }
   
   .product-grid-compact {
-    @apply grid grid-cols-4 gap-2;
+    @apply grid grid-cols-5 gap-1.5;
   }
   
   /* Cart area styles */
@@ -90,53 +90,53 @@
   }
   
   .cart-items-area {
-    @apply flex-1 overflow-y-auto min-h-96;
+    @apply flex-1 overflow-y-auto min-h-80;
   }
   
   .cart-item {
-    @apply bg-white rounded-lg p-3 border border-gray-200 shadow-sm hover:shadow-md transition-shadow;
+    @apply bg-white rounded-md p-2 border border-gray-200 shadow-sm hover:shadow-md transition-shadow;
   }
   
   .cart-header {
-    @apply p-4 border-b border-gray-200 bg-gray-50;
+    @apply p-3 border-b border-gray-200 bg-gray-50;
   }
   
   .cart-summary {
-    @apply p-4 border-t border-gray-200 bg-gray-50;
+    @apply p-3 border-t border-gray-200 bg-gray-50;
   }
   
   @media (max-width: 768px) {
     .product-grid {
-      @apply grid-cols-2 gap-2;
+      @apply grid-cols-3 gap-1.5;
     }
     
     .product-grid-compact {
-      @apply grid-cols-3 gap-2;
-    }
-    
-    .cart-items-area {
-      @apply min-h-80;
-    }
-  }
-  
-  @media (max-width: 640px) {
-    .product-grid {
-      @apply grid-cols-2 gap-2;
-    }
-    
-    .product-grid-compact {
-      @apply grid-cols-2 gap-2;
+      @apply grid-cols-4 gap-1.5;
     }
     
     .cart-items-area {
       @apply min-h-72;
     }
   }
+  
+  @media (max-width: 640px) {
+    .product-grid {
+      @apply grid-cols-2 gap-1.5;
+    }
+    
+    .product-grid-compact {
+      @apply grid-cols-3 gap-1.5;
+    }
+    
+    .cart-items-area {
+      @apply min-h-64;
+    }
+  }
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -154,14 +154,14 @@
 /* Touch-friendly button sizes */
 @media (max-width: 768px) {
   .btn {
-    @apply px-4 py-2 text-base;
-  }
-  
-  .btn-sm {
     @apply px-3 py-1.5 text-sm;
   }
   
+  .btn-sm {
+    @apply px-2 py-1 text-xs;
+  }
+  
   .input {
-    @apply px-4 py-2 text-base;
+    @apply px-3 py-1.5 text-sm;
   }
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, ShoppingCart, DollarSign, BarChart3, Download, FileText, Printer } from 'lucide-react';
+import { TrendingUp, ShoppingCart, BarChart3, Download, FileText, Printer } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -85,190 +85,142 @@ function Reports() {
   };
 
   return (
-    <div className="space-y-8 p-6">
+    <div className="space-y-4 p-4">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-        <p className="text-gray-600 mt-2">Comprehensive business insights and performance metrics</p>
+        <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
+        <p className="text-sm text-gray-600 mt-1">Business insights and performance metrics</p>
       </div>
 
-      {/* Today Section */}
-      <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Today</h2>
-        
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Sales */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Sales</p>
-                <h3 className="text-2xl font-bold text-gray-900">₨{totalRevenue.toFixed(2)}</h3>
-                <p className="text-sm text-green-600 font-medium">+15.2% from last period</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
+      {/* Stats Grid - Compact */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Sales */}
+        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 mb-1">Sales</p>
+              <h3 className="text-lg font-bold text-gray-900">₨{totalRevenue.toFixed(2)}</h3>
+              <p className="text-xs text-green-600 font-medium">+15.2%</p>
+            </div>
+            <div className="p-2 bg-green-100 rounded-md">
+              <TrendingUp className="h-4 w-4 text-green-600" />
             </div>
           </div>
+        </div>
 
-          {/* Total Revenue */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Total Revenue</p>
-                <h3 className="text-2xl font-bold text-gray-900">₨{totalRevenue.toFixed(2)}</h3>
-                <p className="text-sm text-green-600 font-medium">+15.2% from last period</p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-blue-600" />
-              </div>
+        {/* Transactions */}
+        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 mb-1">Transactions</p>
+              <h3 className="text-lg font-bold text-gray-900">{totalTransactions}</h3>
+              <p className="text-xs text-green-600 font-medium">+8.1%</p>
+            </div>
+            <div className="p-2 bg-purple-100 rounded-md">
+              <ShoppingCart className="h-4 w-4 text-purple-600" />
             </div>
           </div>
+        </div>
 
-          {/* Total Transactions */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Total Transactions</p>
-                <h3 className="text-2xl font-bold text-gray-900">{totalTransactions}</h3>
-                <p className="text-sm text-green-600 font-medium">+8.1% from last period</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <ShoppingCart className="h-6 w-6 text-purple-600" />
-              </div>
+        {/* Avg Transaction */}
+        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-gray-600 mb-1">Avg Transaction</p>
+              <h3 className="text-lg font-bold text-gray-900">₨{averageTransaction.toFixed(2)}</h3>
+              <p className="text-xs text-green-600 font-medium">+2.3%</p>
             </div>
-          </div>
-
-          {/* Avg Transaction */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Avg Transaction</p>
-                <h3 className="text-2xl font-bold text-gray-900">₨{averageTransaction.toFixed(2)}</h3>
-                <p className="text-sm text-green-600 font-medium">+2.3% from last period</p>
-              </div>
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-orange-600" />
-              </div>
+            <div className="p-2 bg-orange-100 rounded-md">
+              <BarChart3 className="h-4 w-4 text-orange-600" />
             </div>
           </div>
         </div>
 
         {/* Profit Margin */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Profit Margin</p>
-              <h3 className="text-2xl font-bold text-gray-900">{profitMargin}%</h3>
-              <p className="text-sm text-green-600 font-medium">+1.2% from last period</p>
+              <p className="text-xs font-medium text-gray-600 mb-1">Profit Margin</p>
+              <h3 className="text-lg font-bold text-gray-900">{profitMargin}%</h3>
+              <p className="text-xs text-green-600 font-medium">+1.2%</p>
             </div>
-            <div className="p-3 bg-green-100 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-green-600" />
+            <div className="p-2 bg-green-100 rounded-md">
+              <TrendingUp className="h-4 w-4 text-green-600" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Daily Sales Trend */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Sales Trend</h3>
-        <p className="text-sm text-gray-600 mb-6">Revenue and transaction count over time</p>
-        
-        <div className="space-y-4">
-          {dailySalesTrend.map((day, index) => (
-            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex-1">
-                <p className="font-medium text-gray-900">{day.day}</p>
-                <p className="text-sm text-gray-600">{day.transactions} txns</p>
+      {/* Two Column Layout for Better Space Usage */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Daily Sales Trend - Left Column */}
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">Daily Sales Trend</h3>
+          <div className="space-y-2">
+            {dailySalesTrend.map((day, index) => (
+              <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-900">{day.day}</p>
+                  <p className="text-xs text-gray-600">{day.transactions} txns</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-gray-900">₨{day.revenue.toFixed(2)}</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="font-semibold text-gray-900">₨{day.revenue.toFixed(2)}</p>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Selling Products - Right Column */}
+        <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+          <h3 className="text-base font-semibold text-gray-900 mb-3">Top Products</h3>
+          <div className="space-y-2">
+            {topProducts.map((product, index) => (
+              <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-bold text-blue-600">{index + 1}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 truncate max-w-32">{product.name}</p>
+                    <p className="text-xs text-gray-600">{product.units_sold} units</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-gray-900">₨{product.revenue.toFixed(2)}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Top Selling Products */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Selling Products</h3>
-        <p className="text-sm text-gray-600 mb-6">Best performing products by revenue</p>
-        
-        <div className="space-y-4">
-          {topProducts.map((product, index) => (
-            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-4">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold text-blue-600">{index + 1}</span>
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">{product.name}</p>
-                  <p className="text-sm text-gray-600">{product.units_sold} units sold</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-gray-900">₨{product.revenue.toFixed(2)}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Transaction History */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Transaction History</h3>
-        <p className="text-sm text-gray-600 mb-6">Detailed view of recent sales transactions</p>
-        
+      {/* Recent Transactions - Full Width */}
+      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <h3 className="text-base font-semibold text-gray-900 mb-3">Recent Transactions</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Transaction ID
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Time
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Items
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payment
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {recentTransactions.map((transaction) => (
                 <tr key={transaction.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {transaction.id}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {transaction.time}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {transaction.customer}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {transaction.items}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {transaction.payment}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    ₨{transaction.total.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">{transaction.id}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">{transaction.time}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900 truncate max-w-20">{transaction.customer}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">{transaction.items}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">{transaction.payment}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">₨{transaction.total.toFixed(2)}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
                     <button className="text-blue-600 hover:text-blue-800">View</button>
                   </td>
                 </tr>
@@ -278,33 +230,31 @@ function Reports() {
         </div>
       </div>
 
-      {/* Export Reports */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Export Reports</h3>
-        <p className="text-sm text-gray-600 mb-6">Download reports for external analysis</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Export Actions - Compact */}
+      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+        <h3 className="text-base font-semibold text-gray-900 mb-3">Export Reports</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <button
             onClick={exportToCSV}
-            className="flex items-center justify-center space-x-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-center space-x-2 p-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm"
           >
-            <Download className="h-5 w-5 text-gray-600" />
-            <span className="font-medium text-gray-700">Export to CSV</span>
+            <Download className="h-4 w-4 text-gray-600" />
+            <span className="font-medium text-gray-700">Export CSV</span>
           </button>
           
           <button
             onClick={generatePDF}
-            className="flex items-center justify-center space-x-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-center space-x-2 p-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm"
           >
-            <FileText className="h-5 w-5 text-gray-600" />
-            <span className="font-medium text-gray-700">Generate PDF Report</span>
+            <FileText className="h-4 w-4 text-gray-600" />
+            <span className="font-medium text-gray-700">Generate PDF</span>
           </button>
           
           <button
             onClick={printSummary}
-            className="flex items-center justify-center space-x-2 p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-center space-x-2 p-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm"
           >
-            <Printer className="h-5 w-5 text-gray-600" />
+            <Printer className="h-4 w-4 text-gray-600" />
             <span className="font-medium text-gray-700">Print Summary</span>
           </button>
         </div>

@@ -244,12 +244,12 @@ function Products() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Product Management</h1>
-          <p className="text-gray-600">Manage your product catalog and inventory</p>
+          <h1 className="text-xl font-bold text-gray-900">Product Management</h1>
+          <p className="text-sm text-gray-600">Manage your product catalog and inventory</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
@@ -342,38 +342,38 @@ function Products() {
                     const stockStatus = getStockStatus(product.stock);
                     return (
                       <tr key={product.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-3 py-2 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="h-8 w-8 bg-gray-100 rounded-md flex items-center justify-center">
-                              <Package className="h-4 w-4 text-gray-400" />
+                            <div className="h-6 w-6 bg-gray-100 rounded-md flex items-center justify-center">
+                              <Package className="h-3 w-3 text-gray-400" />
                             </div>
-                            <div className="ml-3">
+                            <div className="ml-2">
                               <div className="text-sm font-medium text-gray-900">
                                 {product.name}
                               </div>
                               {product.description && (
-                                <div className="text-xs text-gray-500 truncate max-w-xs">
+                                <div className="text-xs text-gray-500 truncate max-w-48">
                                   {product.description}
                                 </div>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
                           {product.barcode || '-'}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
                           ₨{product.price.toFixed(2)}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-3 py-2 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${stockStatus.bg} ${stockStatus.color}`}>
                             {product.stock} - {stockStatus.text}
                           </span>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
                           {product.category || '-'}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs font-medium">
                           <div className="flex space-x-1">
                             <button
                               onClick={() => handleEdit(product)}
