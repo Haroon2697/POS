@@ -253,15 +253,15 @@ function Products() {
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="btn-primary"
+          className="btn-primary btn-sm"
         >
-          <Plus className="h-5 w-5 mr-2" />
+          <Plus className="h-4 w-4 mr-1" />
           Add Product
         </button>
       </div>
 
       {/* Filters */}
-      <div className="card">
+      <div className="card-lg">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -292,7 +292,7 @@ function Products() {
 
       {/* Products Grid */}
       {loading ? (
-        <div className="card">
+        <div className="card-lg">
           <div className="animate-pulse space-y-4">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="flex items-center space-x-4">
@@ -305,8 +305,8 @@ function Products() {
             ))}
           </div>
         </div>
-      ) : (
-        <div className="card">
+              ) : (
+          <div className="card-lg">
           {filteredProducts.length === 0 ? (
             <div className="text-center py-12">
               <Package className="h-12 w-12 mx-auto text-gray-300 mb-4" />
@@ -317,22 +317,22 @@ function Products() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Product
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Barcode
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Price
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Stock
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Category
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -342,50 +342,50 @@ function Products() {
                     const stockStatus = getStockStatus(product.stock);
                     return (
                       <tr key={product.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                              <Package className="h-5 w-5 text-gray-400" />
+                            <div className="h-8 w-8 bg-gray-100 rounded-md flex items-center justify-center">
+                              <Package className="h-4 w-4 text-gray-400" />
                             </div>
-                            <div className="ml-4">
+                            <div className="ml-3">
                               <div className="text-sm font-medium text-gray-900">
                                 {product.name}
                               </div>
                               {product.description && (
-                                <div className="text-sm text-gray-500 truncate max-w-xs">
+                                <div className="text-xs text-gray-500 truncate max-w-xs">
                                   {product.description}
                                 </div>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                           {product.barcode || '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                           ₨{product.price.toFixed(2)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${stockStatus.bg} ${stockStatus.color}`}>
                             {product.stock} - {stockStatus.text}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                           {product.category || '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex space-x-2">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-1">
                             <button
                               onClick={() => handleEdit(product)}
-                              className="text-primary-600 hover:text-primary-900"
+                              className="text-primary-600 hover:text-primary-900 p-1 hover:bg-primary-50 rounded"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-3 w-3" />
                             </button>
                             <button
                               onClick={() => handleDelete(product.id)}
-                              className="text-red-600 hover:text-red-900"
+                              className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3 w-3" />
                             </button>
                           </div>
                         </td>

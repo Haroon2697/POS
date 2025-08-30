@@ -470,28 +470,28 @@ function POS() {
             </div>
             
             {/* Mode Switching Buttons */}
-            <div className="flex items-center space-x-4">
-              <div className="flex bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center space-x-3">
+              <div className="flex bg-gray-100 rounded-md p-1">
                 <button
                   onClick={switchToSalesMode}
-                  className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded font-medium transition-colors text-sm ${
                     currentMode === 'sales'
                       ? 'bg-white text-primary-600 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  <Store className="w-4 h-4 mr-2 inline" />
+                  <Store className="w-3 h-3 mr-1 inline" />
                   Sales
                 </button>
                 <button
                   onClick={switchToInventoryMode}
-                  className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded font-medium transition-colors text-sm ${
                     currentMode === 'inventory'
                       ? 'bg-white text-primary-600 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
-                  <Package className="w-4 h-4 mr-2 inline" />
+                  <Package className="w-3 h-3 mr-1 inline" />
                   Inventory
                 </button>
               </div>
@@ -499,7 +499,7 @@ function POS() {
               {currentMode === 'sales' && (
                 <button
                   onClick={clearCart}
-                  className="btn btn-secondary"
+                  className="btn btn-secondary btn-sm"
                 >
                   Clear Cart
                 </button>
@@ -511,67 +511,34 @@ function POS() {
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel - Products (60-65% width) */}
-          <div className="w-2/3 bg-gray-50 p-6 overflow-y-auto">
+          <div className="w-2/3 bg-gray-50 p-4 overflow-y-auto">
             {currentMode === 'sales' ? (
               <>
                 {/* Category Navigation */}
-                <div className="mb-6">
-                  <div className="flex space-x-3 overflow-x-auto pb-2">
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium whitespace-nowrap">
+                <div className="mb-4">
+                  <div className="flex space-x-2 overflow-x-auto pb-2">
+                    <button className="px-3 py-1.5 bg-blue-600 text-white rounded-md font-medium whitespace-nowrap text-sm">
                       All Products
                     </button>
-                    <button className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 whitespace-nowrap">
+                    <button className="px-3 py-1.5 bg-white text-gray-700 rounded-md font-medium hover:bg-gray-50 whitespace-nowrap text-sm">
                       Groceries
                     </button>
-                    <button className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 whitespace-nowrap">
+                    <button className="px-3 py-1.5 bg-white text-gray-700 rounded-md font-medium hover:bg-gray-50 whitespace-nowrap text-sm">
                       Beverages
                     </button>
-                    <button className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 whitespace-nowrap">
+                    <button className="px-3 py-1.5 bg-white text-gray-700 rounded-md font-medium hover:bg-gray-50 whitespace-nowrap text-sm">
                       Snacks
                     </button>
-                    <button className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 whitespace-nowrap">
+                    <button className="px-3 py-1.5 bg-white text-gray-700 rounded-md font-medium hover:bg-gray-50 whitespace-nowrap text-sm">
                       Household
                     </button>
-                    <button className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 whitespace-nowrap">
+                    <button className="px-3 py-1.5 bg-white text-gray-700 rounded-md font-medium whitespace-nowrap text-sm">
                       Electronics
                     </button>
                   </div>
                 </div>
 
-                {/* Search Bar */}
-                <div className="mb-6">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search for products..."
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
 
-                {/* Manual Barcode Input */}
-                <div className="mb-6">
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      value={manualBarcode}
-                      onChange={(e) => setManualBarcode(e.target.value)}
-                      placeholder="Enter barcode manually"
-                      className="flex-1 py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleManualScan(manualBarcode);
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={() => handleManualScan(manualBarcode)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
 
                 {/* Barcode Scanner */}
                 <div className="mb-6">
@@ -603,22 +570,58 @@ function POS() {
                   </div>
                 </div>
 
+                {/* Manual Barcode Input */}
+                <div className="mb-4">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Manual Barcode Entry</h3>
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={manualBarcode}
+                        onChange={(e) => setManualBarcode(e.target.value)}
+                        placeholder="Enter barcode manually"
+                        className="flex-1 py-2 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleManualScan(manualBarcode);
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => handleManualScan(manualBarcode)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+                      >
+                        Add to Cart
+                      </button>
+                      <button
+                        onClick={() => setManualBarcode('')}
+                        className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md font-medium hover:bg-gray-300 transition-colors"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Enter the product barcode and press Enter or click "Add to Cart"
+                    </p>
+                  </div>
+                </div>
+
                 {/* Products Grid */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="product-grid-compact">
                   {products.map((product) => (
                     <div
                       key={product.id}
                       onClick={() => addToCart(product)}
-                      className="bg-white rounded-lg border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                      className="product-card-compact"
                     >
-                      <div className="w-full h-32 bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                        <Package className="w-12 h-12 text-gray-400" />
+                      <div className="w-full h-20 bg-gray-200 rounded-md mb-2 flex items-center justify-center">
+                        <Package className="w-8 h-8 text-gray-400" />
                       </div>
-                      <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
-                      <p className="text-sm text-gray-500 mb-2">{product.description || 'No description'}</p>
+                      <h3 className="font-medium text-gray-900 mb-1 text-sm truncate">{product.name}</h3>
+                      <p className="text-xs text-gray-500 mb-2 line-clamp-2">{product.description || 'No description'}</p>
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-bold text-blue-600">₨{product.price.toFixed(2)}</span>
-                        <span className="text-sm text-gray-500">Stock: {product.stock}</span>
+                        <span className="text-base font-bold text-blue-600">₨{product.price.toFixed(2)}</span>
+                        <span className="text-xs text-gray-500">Stock: {product.stock}</span>
                       </div>
                     </div>
                   ))}
@@ -642,7 +645,7 @@ function POS() {
                           description: ''
                         });
                       }}
-                      className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                      className="w-full bg-blue-600 text-white py-2 px-3 rounded-md font-medium hover:bg-blue-700 transition-colors text-sm"
                     >
                       <Plus className="w-4 h-4 mr-2 inline" />
                       Add New Product
@@ -650,7 +653,7 @@ function POS() {
                     
                     <button
                       onClick={() => setShowCsvImport(true)}
-                      className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                      className="w-full bg-gray-100 text-gray-700 py-2 px-3 rounded-md font-medium hover:bg-gray-200 transition-colors text-sm"
                     >
                       <Package className="w-4 h-4 mr-2 inline" />
                       Import Products (CSV)
@@ -692,15 +695,15 @@ function POS() {
                                   });
                                   setShowProductForm(true);
                                 }}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                               >
-                                <Edit3 className="w-4 h-4" />
+                                <Edit3 className="w-3 h-3" />
                               </button>
                               <button
                                 onClick={() => deleteProduct(product.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3 h-3" />
                               </button>
                             </div>
                           </div>
@@ -714,62 +717,65 @@ function POS() {
           </div>
 
           {/* Right Panel - Cart (35-40% width) */}
-          <div className="w-1/3 bg-white border-l border-gray-200 flex flex-col">
+          <div className="w-1/3 bg-white border-l border-gray-200 cart-container">
             {currentMode === 'sales' ? (
               <>
                 {/* Cart Header */}
-                <div className="p-6 border-b border-gray-200">
+                <div className="cart-header">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-3">
                       <FileText className="w-5 h-5 text-blue-600" />
                       <h2 className="text-xl font-bold text-gray-900">Shopping Cart</h2>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {cart.length} item{cart.length !== 1 ? 's' : ''}
                     </div>
                   </div>
                 </div>
 
                 {/* Cart Items */}
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="cart-items-area p-4">
                   {cart.length === 0 ? (
-                    <div className="text-center py-8">
-                      <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">No items in cart</p>
+                    <div className="text-center py-12">
+                      <ShoppingCart className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500 text-lg">No items in cart</p>
                       <p className="text-sm text-gray-400">Scan products or add them manually</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {cart.map((item) => (
-                        <div key={item.id} className="bg-white rounded-lg p-4 border border-gray-200">
-                          <div className="flex items-center space-x-4">
+                        <div key={item.id} className="cart-item">
+                          <div className="flex items-center space-x-3">
                             {/* Product Image */}
-                            <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Package className="w-8 h-8 text-gray-400" />
+                            <div className="w-14 h-14 bg-gray-200 rounded-md flex items-center justify-center flex-shrink-0">
+                              <Package className="w-7 h-7 text-gray-400" />
                             </div>
                             
                             {/* Product Details */}
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-gray-900 text-lg mb-1">{item.name}</h4>
-                              <p className="text-gray-600 text-base">₨{item.price.toFixed(2)}</p>
+                              <h4 className="font-semibold text-gray-900 text-base mb-1 truncate">{item.name}</h4>
+                              <p className="text-gray-600 text-sm">₨{item.price.toFixed(2)}</p>
                             </div>
                             
                             {/* Edit Icon */}
-                            <button className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors flex-shrink-0">
+                            <button className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors flex-shrink-0">
                               <Edit3 className="w-4 h-4" />
                             </button>
                             
                             {/* Quantity Controls */}
-                            <div className="flex items-center space-x-3 flex-shrink-0">
+                            <div className="flex items-center space-x-2 flex-shrink-0">
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                                className="w-7 h-7 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
                               >
                                 <Minus className="w-4 h-4 text-gray-600" />
                               </button>
-                              <span className="text-lg font-semibold text-gray-900 w-8 text-center">
+                              <span className="text-base font-semibold text-gray-900 w-8 text-center">
                                 {item.quantity}
                               </span>
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
+                                className="w-7 h-7 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors"
                               >
                                 <Plus className="w-4 h-4 text-gray-600" />
                               </button>
@@ -782,8 +788,8 @@ function POS() {
                 </div>
 
                 {/* Order Summary */}
-                <div className="p-6 border-t border-gray-200 bg-gray-50">
-                  <div className="space-y-3 mb-6">
+                <div className="cart-summary">
+                  <div className="space-y-3 mb-4">
                     <div className="flex justify-between text-base">
                       <span className="font-medium text-gray-700">Subtotal:</span>
                       <span className="font-semibold text-gray-900">₨{getSubtotal().toFixed(2)}</span>
@@ -816,47 +822,47 @@ function POS() {
                       value={customerAmount}
                       onChange={(e) => handleCustomerAmountChange(e.target.value)}
                       placeholder="Enter amount received"
-                      className="w-full py-3 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full py-3 px-4 rounded-md border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                     />
                   </div>
 
                   {/* Payment Method */}
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Payment Method
                     </label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-3 gap-2">
                       <button
                         onClick={() => setPaymentMethod('cash')}
-                        className={`py-3 px-4 rounded-lg border font-medium transition-colors ${
+                        className={`py-2 px-3 rounded-md border font-medium transition-colors text-sm ${
                           paymentMethod === 'cash' 
                             ? 'border-blue-500 bg-blue-50 text-blue-700' 
                             : 'border-gray-300 hover:border-gray-400'
                         }`}
                       >
-                        <Banknote className="w-5 h-5 mr-2 inline" />
+                        <Banknote className="w-4 h-4 mr-1 inline" />
                         Cash
                       </button>
                       <button
                         onClick={() => setPaymentMethod('mobile')}
-                        className={`py-3 px-4 rounded-lg border font-medium transition-colors ${
+                        className={`py-2 px-3 rounded-md border font-medium transition-colors text-sm ${
                           paymentMethod === 'mobile' 
                             ? 'border-blue-500 bg-blue-50 text-blue-700' 
                             : 'border-gray-300 hover:border-gray-400'
                         }`}
                       >
-                        <Smartphone className="w-5 h-5 mr-2 inline" />
+                        <Smartphone className="w-4 h-4 mr-1 inline" />
                         Mobile
                       </button>
                       <button
                         onClick={() => setPaymentMethod('card')}
-                        className={`py-3 px-4 rounded-lg border font-medium transition-colors ${
+                        className={`py-2 px-3 rounded-md border font-medium transition-colors text-sm ${
                           paymentMethod === 'card' 
                             ? 'border-blue-500 bg-blue-50 text-blue-700' 
                             : 'border-gray-300 hover:border-gray-400'
                         }`}
                       >
-                        <CreditCard className="w-5 h-5 mr-2 inline" />
+                        <CreditCard className="w-4 h-4 mr-1 inline" />
                         Card
                       </button>
                     </div>
@@ -866,7 +872,7 @@ function POS() {
                   <button
                     onClick={handlePayment}
                     disabled={cart.length === 0}
-                    className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-md hover:shadow-lg"
                   >
                     Place Order
                   </button>
