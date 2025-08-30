@@ -1,32 +1,27 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { 
-  ShoppingCart, 
-  Trash2, 
-  CreditCard, 
-  Banknote, 
-  QrCode, 
-  X,
-  Search,
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'react-hot-toast';
+import {
+  QrCode,
   Plus,
   Minus,
+  Trash2,
+  ShoppingCart,
+  CreditCard,
+  Banknote,
   Package,
   Store,
-  Settings
+  Edit3,
+  FileText
 } from 'lucide-react';
 import axios from 'axios';
-import toast from 'react-hot-toast';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 
 function POS() {
-  const { user } = useAuth();
-  
   // Mode switching state
   const [currentMode, setCurrentMode] = useState('sales'); // 'sales' or 'inventory'
   
   // Sales mode states
   const [cart, setCart] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [customerAmount, setCustomerAmount] = useState('');
   const [showChange, setShowChange] = useState(false);
@@ -41,6 +36,11 @@ function POS() {
   });
   const [editingProduct, setEditingProduct] = useState(null);
   const [showProductForm, setShowProductForm] = useState(false);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [csvData, setCsvData] = useState([]);
+  const [csvPreview, setCsvPreview] = useState([]);
+  const [importProgress, setImportProgress] = useState(0);
+  const [isImporting, setIsImporting] = useState(false);
   
   // Scanner states
   const [scanning, setScanning] = useState(false);
@@ -50,7 +50,6 @@ function POS() {
   
   // Products state
   const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
 
   useEffect(() => {
     fetchProducts();
@@ -86,6 +85,33 @@ function POS() {
     setEditingProduct(null);
     toast.success('Switched to Inventory Mode');
   };
+
+  // Cart functions
+  const addToCart = useCallback((product) => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(item => item.id === product.id);
+       
+      if (existingItem) {
+        if (existingItem.quantity >= product.stock) {
+          toast.error(`Only ${product.stock} in stock`);
+          return prevCart;
+        }
+        return prevCart.map(item =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      } else {
+        if (product.stock > 0) {
+          toast.success(`${product.name} added to cart`);
+          return [...prevCart, { ...product, quantity: 1 }];
+        } else {
+          toast.error('Product out of stock');
+          return prevCart;
+        }
+      }
+    });
+  }, []);
 
   // Barcode scanner handler with mode awareness
   const handleBarcodeScan = useCallback(async (scannedCode) => {
@@ -130,33 +156,7 @@ function POS() {
     }
     
     setManualBarcode(''); // Clear input field
-  }, [currentMode, products]);
-
-  const addToCart = useCallback((product) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.id === product.id);
-       
-      if (existingItem) {
-        if (existingItem.quantity >= product.stock) {
-          toast.error(`Only ${product.stock} in stock`);
-          return prevCart;
-        }
-        return prevCart.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      } else {
-        if (product.stock > 0) {
-          toast.success(`${product.name} added to cart`);
-          return [...prevCart, { ...product, quantity: 1 }];
-        } else {
-          toast.error('Product out of stock');
-          return prevCart;
-        }
-      }
-    });
-  }, []);
+  }, [currentMode, products, addToCart]);
 
   const removeFromCart = (productId) => {
     setCart(prevCart => prevCart.filter(item => item.id !== productId));
@@ -322,7 +322,7 @@ function POS() {
     setScanning(true);
   };
 
-  const stopScanning = () => {
+  const stopScanning = useCallback(() => {
     setScanning(false);
     if (scanner) {
       try {
@@ -331,7 +331,7 @@ function POS() {
         console.error('Error stopping scanner:', error);
       }
     }
-  };
+  }, [scanner]);
 
   useEffect(() => {
     let codeReader = null;
@@ -366,21 +366,96 @@ function POS() {
         }
       }
     };
-  }, [scanning, handleBarcodeScan]);
+  }, [scanning, handleBarcodeScan, stopScanning]);
 
   const handleManualScan = (barcode) => {
     handleBarcodeScan(barcode);
   };
 
-  // Filter products based on search term
-  useEffect(() => {
-    const filtered = products.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (product.barcode && product.barcode.includes(searchTerm));
-      return matchesSearch;
-    });
-    setFilteredProducts(filtered);
-  }, [products, searchTerm]);
+
+
+  const downloadCsvTemplate = () => {
+    const csvContent = "Name,Barcode,Price,Stock,Description\n";
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'product_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('CSV template downloaded');
+  };
+
+  const handleCsvFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const csv = e.target.result;
+        const lines = csv.split('\n');
+        const headers = lines[0].split(',');
+        const products = [];
+        for (let i = 1; i < lines.length; i++) {
+          const currentline = lines[i].split(',');
+          if (currentline.length > 1) {
+            const obj = {};
+            for (let j = 0; j < headers.length; j++) {
+              obj[headers[j].trim()] = currentline[j].trim();
+            }
+            products.push(obj);
+          }
+        }
+        setCsvData(products);
+        setCsvPreview(products.slice(0, 5)); // Preview first 5 rows
+        toast.success(`${products.length} products found in CSV`);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const importCsvProducts = async () => {
+    if (csvData.length === 0) {
+      toast.error('No products to import from CSV.');
+      return;
+    }
+
+    setIsImporting(true);
+    setImportProgress(0);
+    const totalProducts = csvData.length;
+    let importedCount = 0;
+
+    for (let i = 0; i < totalProducts; i++) {
+      const product = csvData[i];
+      const productExists = products.some(p => p.barcode === product.Barcode);
+
+      if (productExists) {
+        toast.warn(`Product with barcode ${product.Barcode} already exists. Skipping.`);
+      } else {
+        try {
+          await axios.post('/api/products', {
+            name: product.Name,
+            barcode: product.Barcode,
+            price: parseFloat(product.Price),
+            stock: parseInt(product.Stock),
+            description: product.Description || ''
+          });
+          importedCount++;
+          setImportProgress((importedCount / totalProducts) * 100);
+          toast.success(`Product ${product.Name} added successfully.`);
+        } catch (error) {
+          toast.error(`Failed to import product ${product.Name}: ${error.response?.data?.error || error.message}`);
+        }
+      }
+    }
+    setIsImporting(false);
+    fetchProducts();
+    toast.success(`Successfully imported ${importedCount} products.`);
+    setShowCsvImport(false);
+    setCsvData([]);
+    setCsvPreview([]);
+  };
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -391,7 +466,6 @@ function POS() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Point of Sale</h1>
-              <p className="text-gray-600">Cashier: {user?.username}</p>
             </div>
             
             {/* Mode Switching Buttons */}
@@ -421,14 +495,6 @@ function POS() {
                 </button>
               </div>
               
-              <button
-                onClick={scanning ? stopScanning : startScanning}
-                className={`btn ${scanning ? 'btn-danger' : 'btn-primary'}`}
-              >
-                <QrCode className="w-4 h-4 mr-2" />
-                {scanning ? 'Stop Scanning' : 'Scan Barcode'}
-              </button>
-              
               {currentMode === 'sales' && (
                 <button
                   onClick={clearCart}
@@ -443,195 +509,299 @@ function POS() {
 
         {/* Main Content */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Products Section - Smaller */}
-          <div className="w-1/3 bg-white border-r overflow-y-auto">
-            <div className="p-4">
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search products..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Manual Barcode Input */}
-              <div className="mb-4">
-                <div className="flex space-x-2">
-                  <input
-                    type="text"
-                    value={manualBarcode}
-                    onChange={(e) => setManualBarcode(e.target.value)}
-                    placeholder="Enter barcode manually"
-                    className="flex-1 py-2 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleManualScan(manualBarcode);
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => handleManualScan(manualBarcode)}
-                    className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:ring-2 focus:ring-primary-500"
-                  >
-                    Scan
-                  </button>
-                </div>
-              </div>
-
-              {/* Barcode Scanner */}
-              {scanning && (
-                <div className="mb-4 p-4 border border-gray-300 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium">Barcode Scanner</h3>
-                    <button
-                      onClick={stopScanning}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <X className="w-5 h-5" />
+          {/* Left Panel - Products (60-65% width) */}
+          <div className="w-2/3 bg-gray-50 p-6 overflow-y-auto">
+            {currentMode === 'sales' ? (
+              <>
+                {/* Category Navigation */}
+                <div className="mb-6">
+                  <div className="flex space-x-3 overflow-x-auto pb-2">
+                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium whitespace-nowrap">
+                      All Products
+                    </button>
+                    <button className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 whitespace-nowrap">
+                      Groceries
+                    </button>
+                    <button className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 whitespace-nowrap">
+                      Beverages
+                    </button>
+                    <button className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 whitespace-nowrap">
+                      Snacks
+                    </button>
+                    <button className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 whitespace-nowrap">
+                      Household
+                    </button>
+                    <button className="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 whitespace-nowrap">
+                      Electronics
                     </button>
                   </div>
-                  <video
-                    ref={videoRef}
-                    className="w-full h-32 object-cover rounded border"
-                  />
                 </div>
-              )}
 
-              {/* Mode-specific content */}
-              {currentMode === 'inventory' && (
-                <div className="mb-4">
-                  <button
-                    onClick={() => {
-                      setShowProductForm(true);
-                      setEditingProduct(null);
-                      setProductForm({
-                        name: '',
-                        barcode: '',
-                        price: '',
-                        stock: '',
-                        description: ''
-                      });
-                    }}
-                    className="w-full btn btn-primary py-2"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add New Product
-                  </button>
+                {/* Search Bar */}
+                <div className="mb-6">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search for products..."
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
-              )}
 
-              {/* Products Grid - Compact */}
-              <div className="grid grid-cols-1 gap-3">
-                {filteredProducts.map(product => (
-                  <div
-                    key={product.id}
-                    onClick={() => currentMode === 'sales' ? addToCart(product) : null}
-                    className={`p-3 border border-gray-200 rounded-lg transition-all ${
-                      currentMode === 'sales' 
-                        ? 'cursor-pointer hover:border-primary-300 hover:shadow-md' 
-                        : 'cursor-default'
-                    }`}
-                  >
-                    <div className="text-sm font-medium text-gray-900 mb-1">
-                      {product.name}
+                {/* Manual Barcode Input */}
+                <div className="mb-6">
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={manualBarcode}
+                      onChange={(e) => setManualBarcode(e.target.value)}
+                      placeholder="Enter barcode manually"
+                      className="flex-1 py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleManualScan(manualBarcode);
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={() => handleManualScan(manualBarcode)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                {/* Barcode Scanner */}
+                <div className="mb-6">
+                  <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Barcode Scanner</h3>
+                      <button
+                        onClick={scanning ? stopScanning : startScanning}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          scanning 
+                            ? 'bg-red-500 text-white hover:bg-red-600' 
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                      >
+                        <QrCode className="w-4 h-4 mr-2 inline" />
+                        {scanning ? 'Stop Scanning' : 'Scan Barcode'}
+                      </button>
                     </div>
-                    <div className="text-lg font-bold text-primary-600 mb-1">
-                      ₨{product.price.toFixed(2)}
-                    </div>
-                    <div className="text-xs text-gray-500 mb-2">
-                      Stock: {product.stock}
-                    </div>
-                    {currentMode === 'inventory' && (
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingProduct(product);
-                            setProductForm({
-                              name: product.name,
-                              barcode: product.barcode,
-                              price: product.price.toString(),
-                              stock: product.stock.toString(),
-                              description: product.description || ''
-                            });
-                            setShowProductForm(true);
-                          }}
-                          className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteProduct(product.id);
-                          }}
-                          className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
-                        >
-                          Delete
-                        </button>
+                    
+                    {scanning && (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <QrCode className="w-8 h-8 text-blue-600" />
+                        </div>
+                        <p className="text-gray-600">Scanning for barcodes...</p>
+                        <p className="text-sm text-gray-500 mt-2">Point camera at product barcode</p>
                       </div>
                     )}
                   </div>
-                ))}
+                </div>
+
+                {/* Products Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  {products.map((product) => (
+                    <div
+                      key={product.id}
+                      onClick={() => addToCart(product)}
+                      className="bg-white rounded-lg border border-gray-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                    >
+                      <div className="w-full h-32 bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
+                        <Package className="w-12 h-12 text-gray-400" />
+                      </div>
+                      <h3 className="font-semibold text-gray-900 mb-1">{product.name}</h3>
+                      <p className="text-sm text-gray-500 mb-2">{product.description || 'No description'}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold text-blue-600">₨{product.price.toFixed(2)}</span>
+                        <span className="text-sm text-gray-500">Stock: {product.stock}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              // Inventory Mode
+              <div className="space-y-6">
+                {/* Mode-specific content */}
+                {currentMode === 'inventory' && (
+                  <div className="mb-4 space-y-3">
+                    <button
+                      onClick={() => {
+                        setShowProductForm(true);
+                        setEditingProduct(null);
+                        setProductForm({
+                          name: '',
+                          barcode: '',
+                          price: '',
+                          stock: '',
+                          description: ''
+                        });
+                      }}
+                      className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      <Plus className="w-4 h-4 mr-2 inline" />
+                      Add New Product
+                    </button>
+                    
+                    <button
+                      onClick={() => setShowCsvImport(true)}
+                      className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      <Package className="w-4 h-4 mr-2 inline" />
+                      Import Products (CSV)
+                    </button>
+                  </div>
+                )}
+
+                {/* Products List for Inventory */}
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900">Products</h3>
+                  </div>
+                  <div className="divide-y divide-gray-200">
+                    {products.map((product) => (
+                      <div key={product.id} className="px-6 py-4 hover:bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                              <Package className="w-6 h-6 text-gray-400" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium text-gray-900">{product.name}</h4>
+                              <p className="text-sm text-gray-500">{product.barcode || 'No barcode'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <span className="text-lg font-semibold text-blue-600">₨{product.price.toFixed(2)}</span>
+                            <span className="text-sm text-gray-500">Stock: {product.stock}</span>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => {
+                                  setEditingProduct(product);
+                                  setProductForm({
+                                    name: product.name,
+                                    barcode: product.barcode || '',
+                                    price: product.price.toString(),
+                                    stock: product.stock.toString(),
+                                    description: product.description || ''
+                                  });
+                                  setShowProductForm(true);
+                                }}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteProduct(product.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Right Side - Mode-specific content */}
-          <div className="w-2/3 bg-white flex flex-col">
+          {/* Right Panel - Cart (35-40% width) */}
+          <div className="w-1/3 bg-white border-l border-gray-200 flex flex-col">
             {currentMode === 'sales' ? (
-              // Sales Mode - Shopping Cart
               <>
-                <div className="p-4 border-b">
-                  <h2 className="text-lg font-semibold text-gray-900">Shopping Cart</h2>
+                {/* Cart Header */}
+                <div className="p-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      <h2 className="text-xl font-bold text-gray-900">Current Order</h2>
+                    </div>
+                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-500">Order Number: #001</p>
+                </div>
+
+                {/* Order Configuration */}
+                <div className="p-6 border-b border-gray-200">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Table</label>
+                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option>Table 01</option>
+                        <option>Table 02</option>
+                        <option>Table 03</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option>Dine In</option>
+                        <option>Take Away</option>
+                        <option>Delivery</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Cart Items */}
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Items</h3>
                   {cart.length === 0 ? (
-                    <div className="text-center text-gray-500 py-8">
-                      <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p>Cart is empty</p>
-                      <p className="text-sm mt-1">Scan products or add them manually</p>
+                    <div className="text-center py-8">
+                      <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No items in cart</p>
+                      <p className="text-sm text-gray-400">Scan products or add them manually</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {cart.map(item => (
-                        <div key={item.id} className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="font-semibold text-gray-900 text-lg mb-1">{item.name}</div>
-                              <div className="text-lg text-primary-600 font-bold mb-2">
-                                ₨{(item.price * item.quantity).toFixed(2)} total
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                ₨{item.price.toFixed(2)} each × {item.quantity}
-                              </div>
+                      {cart.map((item) => (
+                        <div key={item.id} className="bg-gray-50 rounded-lg p-4">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                              <Package className="w-6 h-6 text-gray-400" />
                             </div>
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-900">{item.name}</h4>
+                              <p className="text-lg font-bold text-blue-600">₨{item.price.toFixed(2)}</p>
+                            </div>
+                            <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                                className="w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
                               >
-                                <Minus className="w-5 h-5" />
+                                <Minus className="w-4 h-4 text-gray-600" />
                               </button>
-                              <span className="w-12 text-center font-bold text-lg">{item.quantity}</span>
+                              <span className="text-lg font-semibold text-gray-900 w-8 text-center">
+                                {item.quantity}
+                              </span>
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700"
+                                className="w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-colors"
                               >
-                                <Plus className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => removeFromCart(item.id)}
-                                className="p-2 rounded-full bg-red-100 hover:bg-red-200 text-red-600"
-                              >
-                                <Trash2 className="w-5 h-5" />
+                                <Plus className="w-4 h-4 text-gray-600" />
                               </button>
                             </div>
+                            <button
+                              onClick={() => removeFromCart(item.id)}
+                              className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -639,28 +809,24 @@ function POS() {
                   )}
                 </div>
 
-                {/* Cart Summary */}
-                <div className="border-t p-6 space-y-4 bg-gray-50">
-                  <div className="text-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Transaction Summary</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
+                {/* Order Summary */}
+                <div className="p-6 border-t border-gray-200 bg-gray-50">
+                  <div className="space-y-3 mb-6">
                     <div className="flex justify-between text-base">
-                      <span className="font-medium">Subtotal:</span>
-                      <span className="font-semibold">₨{getSubtotal().toFixed(2)}</span>
+                      <span className="font-medium text-gray-700">Subtotal:</span>
+                      <span className="font-semibold text-gray-900">₨{getSubtotal().toFixed(2)}</span>
                     </div>
                     
                     {/* Change Calculation */}
                     {showChange && (
                       <div className="flex justify-between text-base">
-                        <span className="font-medium">Change:</span>
+                        <span className="font-medium text-gray-700">Change:</span>
                         <span className="font-semibold text-green-600">₨{getChange().toFixed(2)}</span>
                       </div>
                     )}
                     
                     <div className="border-t pt-3">
-                      <div className="flex justify-between text-xl font-bold text-primary-600">
+                      <div className="flex justify-between text-xl font-bold text-blue-600">
                         <span>Total:</span>
                         <span>₨{getTotal().toFixed(2)}</span>
                       </div>
@@ -668,27 +834,31 @@ function POS() {
                   </div>
 
                   {/* Customer Amount Input */}
-                  <div className="pt-4 border-t">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Amount Received from Customer</label>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Amount Received from Customer
+                    </label>
                     <input
                       type="number"
                       step="0.01"
                       value={customerAmount}
                       onChange={(e) => handleCustomerAmountChange(e.target.value)}
-                      placeholder="0.00"
-                      className="w-full py-2 px-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Enter amount received"
+                      className="w-full py-3 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
 
                   {/* Payment Method */}
-                  <div className="pt-4 border-t">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
-                    <div className="flex space-x-2">
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Payment Method
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => setPaymentMethod('cash')}
-                        className={`flex-1 py-3 px-4 rounded-md border font-medium ${
+                        className={`py-3 px-4 rounded-lg border font-medium transition-colors ${
                           paymentMethod === 'cash' 
-                            ? 'border-primary-500 bg-primary-50 text-primary-700' 
+                            ? 'border-blue-500 bg-blue-50 text-blue-700' 
                             : 'border-gray-300 hover:border-gray-400'
                         }`}
                       >
@@ -697,9 +867,9 @@ function POS() {
                       </button>
                       <button
                         onClick={() => setPaymentMethod('card')}
-                        className={`flex-1 py-3 px-4 rounded-md border font-medium ${
+                        className={`py-3 px-4 rounded-lg border font-medium transition-colors ${
                           paymentMethod === 'card' 
-                            ? 'border-primary-500 bg-primary-50 text-primary-700' 
+                            ? 'border-blue-500 bg-blue-50 text-blue-700' 
                             : 'border-gray-300 hover:border-gray-400'
                         }`}
                       >
@@ -709,139 +879,249 @@ function POS() {
                     </div>
                   </div>
 
-                  {/* Complete Payment Button */}
-                  <div className="pt-4">
-                    <button
-                      onClick={handlePayment}
-                      disabled={cart.length === 0}
-                      className="w-full btn btn-primary py-4 text-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Complete Payment - ₨{getTotal().toFixed(2)}
-                    </button>
-                  </div>
+                  {/* Place Order Button */}
+                  <button
+                    onClick={handlePayment}
+                    disabled={cart.length === 0}
+                    className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Place Order
+                  </button>
                 </div>
               </>
             ) : (
-              // Inventory Mode - Product Management
-              <>
-                <div className="p-4 border-b">
-                  <h2 className="text-lg font-semibold text-gray-900">Inventory Management</h2>
-                  <p className="text-sm text-gray-600">Manage your product catalog</p>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-4">
-                  {showProductForm ? (
-                    <div className="max-w-2xl mx-auto">
-                      <div className="bg-white p-6 rounded-lg border">
-                        <h3 className="text-lg font-semibold mb-4">
-                          {editingProduct ? 'Edit Product' : 'Add New Product'}
-                        </h3>
+              // Inventory Mode - Product Form
+              <div className="flex-1 overflow-y-auto p-6">
+                {showProductForm ? (
+                  <div className="max-w-2xl mx-auto">
+                    <div className="bg-white p-6 rounded-lg border border-gray-200">
+                      <h3 className="text-lg font-semibold mb-4">
+                        {editingProduct ? 'Edit Product' : 'Add New Product'}
+                      </h3>
+                      
+                      <form onSubmit={handleProductSubmit} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Product Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={productForm.name}
+                            onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                            className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
                         
-                        <form onSubmit={handleProductSubmit} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Barcode *
+                          </label>
+                          <input
+                            type="text"
+                            value={productForm.barcode}
+                            onChange={(e) => setProductForm({...productForm, barcode: e.target.value})}
+                            className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Product Name *
+                              Price (PKR) *
                             </label>
                             <input
-                              type="text"
-                              value={productForm.name}
-                              onChange={(e) => setProductForm({...productForm, name: e.target.value})}
-                              className="w-full py-2 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              type="number"
+                              step="0.01"
+                              value={productForm.price}
+                              onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                              className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               required
                             />
                           </div>
                           
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Barcode *
+                              Stock Quantity *
                             </label>
                             <input
-                              type="text"
-                              value={productForm.barcode}
-                              onChange={(e) => setProductForm({...productForm, barcode: e.target.value})}
-                              className="w-full py-2 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              type="number"
+                              value={productForm.stock}
+                              onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
+                              className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               required
                             />
                           </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Price (PKR) *
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={productForm.price}
-                                onChange={(e) => setProductForm({...productForm, price: e.target.value})}
-                                className="w-full py-2 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                required
-                              />
-                            </div>
-                            
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Stock Quantity *
-                              </label>
-                              <input
-                                type="number"
-                                value={productForm.stock}
-                                onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
-                                className="w-full py-2 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                required
-                              />
-                            </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Description
+                          </label>
+                          <textarea
+                            value={productForm.description}
+                            onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                            rows="3"
+                            className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        
+                        <div className="flex space-x-3 pt-4">
+                          <button
+                            type="submit"
+                            className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                          >
+                            {editingProduct ? 'Update Product' : 'Add Product'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowProductForm(false);
+                              setEditingProduct(null);
+                              setProductForm({
+                                name: '',
+                                barcode: '',
+                                price: '',
+                                stock: '',
+                                description: ''
+                              });
+                            }}
+                            className="flex-1 bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                ) : showCsvImport ? (
+                  <div className="max-w-4xl mx-auto">
+                    <div className="bg-white p-6 rounded-lg border border-gray-200">
+                      <h3 className="text-lg font-semibold mb-4">Import Products from CSV</h3>
+                      
+                      {/* CSV Template Download */}
+                      <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                        <h4 className="font-medium text-blue-900 mb-2">CSV Format Requirements</h4>
+                        <p className="text-sm text-blue-700 mb-3">
+                          Your CSV should have headers: Name, Barcode, Price, Stock, Description
+                        </p>
+                        <button
+                          onClick={downloadCsvTemplate}
+                          className="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                        >
+                          Download CSV Template
+                        </button>
+                      </div>
+
+                      {/* File Upload */}
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Upload CSV File
+                        </label>
+                        <input
+                          type="file"
+                          accept=".csv"
+                          onChange={handleCsvFileUpload}
+                          className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      {/* CSV Preview */}
+                      {csvData.length > 0 && (
+                        <div className="mb-6">
+                          <h4 className="font-medium text-gray-900 mb-3">
+                            Preview ({csvData.length} products found)
+                          </h4>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full border border-gray-200 rounded-lg">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border">
+                                    Name
+                                  </th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border">
+                                    Barcode
+                                  </th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border">
+                                    Price
+                                  </th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border">
+                                    Stock
+                                  </th>
+                                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border">
+                                    Description
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {csvPreview.map((product, index) => (
+                                  <tr key={index}>
+                                    <td className="px-3 py-2 text-sm text-gray-900 border">{product.name}</td>
+                                    <td className="px-3 py-2 text-sm text-gray-900 border">{product.barcode || 'N/A'}</td>
+                                    <td className="px-3 py-2 text-sm text-gray-900 border">₨{product.price.toFixed(2)}</td>
+                                    <td className="px-3 py-2 text-sm text-gray-900 border">{product.stock}</td>
+                                    <td className="px-3 py-2 text-sm text-gray-900 border">{product.description || 'N/A'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
-                          
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Description
-                            </label>
-                            <textarea
-                              value={productForm.description}
-                              onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                              rows="3"
-                              className="w-full py-2 px-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            />
+                          {csvData.length > 5 && (
+                            <p className="text-sm text-gray-500 mt-2">
+                              Showing first 5 rows. Total: {csvData.length} products
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Import Progress */}
+                      {isImporting && (
+                        <div className="mb-6">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700">Importing products...</span>
+                            <span className="text-sm text-gray-500">{Math.round(importProgress)}%</span>
                           </div>
-                          
-                          <div className="flex space-x-3 pt-4">
-                            <button
-                              type="submit"
-                              className="flex-1 btn btn-primary py-2"
-                            >
-                              {editingProduct ? 'Update Product' : 'Add Product'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowProductForm(false);
-                                setEditingProduct(null);
-                                setProductForm({
-                                  name: '',
-                                  barcode: '',
-                                  price: '',
-                                  stock: '',
-                                  description: ''
-                                });
-                              }}
-                              className="flex-1 btn btn-secondary py-2"
-                            >
-                              Cancel
-                            </button>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${importProgress}%` }}
+                            ></div>
                           </div>
-                        </form>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex space-x-3">
+                        {csvData.length > 0 && !isImporting && (
+                          <button
+                            onClick={importCsvProducts}
+                            className="bg-blue-600 text-white py-2 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                          >
+                            Import {csvData.length} Products
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setShowCsvImport(false);
+                            setCsvData([]);
+                            setCsvPreview([]);
+                          }}
+                          className="bg-gray-100 text-gray-700 py-2 px-6 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                        >
+                          Cancel
+                        </button>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-center text-gray-500 py-8">
-                      <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p>No product form open</p>
-                      <p className="text-sm mt-1">Scan a barcode or click "Add New Product" to manage inventory</p>
-                    </div>
-                  )}
-                </div>
-              </>
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-8">
+                    <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <p>No product form open</p>
+                    <p className="text-sm mt-1">Scan a barcode or click "Add New Product" to manage inventory</p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
