@@ -343,14 +343,14 @@ app.post('/api/products', authenticateToken, requireAdmin, (req, res) => {
       }
 
       function insertProduct() {
-        db.run(
-          `INSERT INTO products (name, barcode, price, stock, category, description) VALUES (?, ?, ?, ?, ?, ?)`,
+  db.run(
+    `INSERT INTO products (name, barcode, price, stock, category, description) VALUES (?, ?, ?, ?, ?, ?)`,
           [productName, barcodeValue, numericPrice, numericStock, category, description],
-          function (err) {
-            if (err) {
-              return res.status(500).json({ error: err.message });
-            }
-            res.status(201).json({ id: this.lastID, message: 'Product created successfully' });
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      res.status(201).json({ id: this.lastID, message: 'Product created successfully' });
           }
         );
       }
@@ -432,17 +432,17 @@ app.put('/api/products/:id', authenticateToken, requireAdmin, (req, res) => {
       }
 
       function updateProduct() {
-        db.run(
-          `UPDATE products SET name = ?, barcode = ?, price = ?, stock = ?, category = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+  db.run(
+    `UPDATE products SET name = ?, barcode = ?, price = ?, stock = ?, category = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
           [productName, barcodeValue, numericPrice, numericStock, category, description, id],
-          function (err) {
-            if (err) {
-              return res.status(500).json({ error: err.message });
-            }
-            if (this.changes === 0) {
-              return res.status(404).json({ error: 'Product not found' });
-            }
-            res.json({ message: 'Product updated successfully' });
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Product not found' });
+      }
+      res.json({ message: 'Product updated successfully' });
           }
         );
       }
@@ -505,7 +505,7 @@ app.post('/api/transactions', authenticateToken, (req, res) => {
         db.run('BEGIN TRANSACTION', (err) => {
           if (err) return res.status(500).json({ error: 'Failed to begin transaction' });
 
-                      db.run(
+          db.run(
               `INSERT INTO transactions (cashier_id, total, discount_amount, payment_method, customer_email) VALUES (?, ?, ?, ?, ?)`,
               [cashier_id, final_total, discount_amount, payment_method, customer_email],
             function (err) {
