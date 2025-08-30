@@ -8,6 +8,30 @@ const fs = require('fs');
 require('dotenv').config();
 const BackupManager = require('./backup');
 
+// Initialize printer manager with better error handling
+let printerManager = null;
+try {
+  const PrinterManager = require('./printer');
+  printerManager = new PrinterManager();
+  console.log('PrinterManager class loaded successfully');
+} catch (error) {
+  console.error('Failed to create printer manager:', error.message);
+  console.log('Receipt printing will be disabled - continuing without printer support');
+  printerManager = null;
+}
+
+// Add global error handlers to prevent crashes
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  console.error('Stack trace:', error.stack);
+  // Don't exit the process, just log the error
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit the process, just log the error
+});
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-supermarket-pos-secret-key-2024';
@@ -18,6 +42,32 @@ app.use(express.json());
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/build')));
 }
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    printer: printerManager ? 'available' : 'unavailable',
+    database: 'connected'
+  });
+});
+
+// Printer status endpoint
+app.get('/api/printer/status', authenticateToken, async (req, res) => {
+  try {
+    if (!printerManager) {
+      return res.status(500).json({ error: 'Printer manager not available' });
+    }
+    
+    const status = await printerManager.getPrinterStatus();
+    res.json(status);
+  } catch (error) {
+    console.error('Printer status error:', error);
+    res.status(500).json({ error: 'Failed to get printer status' });
+  }
+});
 
 // Database setup (supports env override)
 const configuredDbPath = process.env.DB_PATH || path.join('db', 'pos.db');
@@ -768,6 +818,62 @@ app.get('/api/reports/sales', authenticateToken, (req, res) => {
   });
 });
 
+// Printer Status API
+app.get('/api/printer/status', authenticateToken, async (req, res) => {
+  try {
+    if (printerManager) {
+      const status = await printerManager.getPrinterStatus();
+      res.json(status);
+    } else {
+      res.json({ connected: false, error: 'Printer manager not available' });
+    }
+  } catch (error) {
+    console.error('Printer status error:', error);
+    res.status(500).json({ error: 'Failed to get printer status' });
+  }
+});
+
+// Test Print API
+app.post('/api/printer/test', authenticateToken, async (req, res) => {
+  try {
+    if (printerManager) {
+      await printerManager.printTestPage();
+      res.json({ message: 'Test page printed successfully' });
+    } else {
+      res.status(500).json({ error: 'Printer manager not available' });
+    }
+  } catch (error) {
+    console.error('Test print error:', error);
+    res.status(500).json({ error: 'Failed to print test page: ' + error.message });
+  }
+});
+
+// Configure Printer Interface API
+app.post('/api/printer/configure', authenticateToken, async (req, res) => {
+  try {
+    const { interface } = req.body;
+    if (!interface) {
+      return res.status(400).json({ error: 'Interface path is required' });
+    }
+    
+    if (printerManager) {
+      printerManager.setPrinterInterface(interface);
+      // Try to reinitialize with new interface
+      const success = await printerManager.initialize(interface);
+      if (success) {
+        res.json({ message: 'Printer interface configured successfully' });
+      } else {
+        res.status(500).json({ error: 'Failed to connect to printer with new interface' });
+      }
+    } else {
+      res.status(500).json({ error: 'Printer manager not available' });
+    }
+  } catch (error) {
+    console.error('Printer configuration error:', error);
+    res.status(500).json({ error: 'Failed to configure printer: ' + error.message });
+  }
+});
+
 // Print Receipt API
 app.post('/api/print-receipt', authenticateToken, async (req, res) => {
   try {
@@ -787,8 +893,13 @@ app.post('/api/print-receipt', authenticateToken, async (req, res) => {
         return res.status(404).json({ error: 'Transaction not found' });
       }
 
-      // Get transaction items
-      db.all('SELECT * FROM transaction_items WHERE transaction_id = ?', [transaction_id], async (err, items) => {
+      // Get transaction items with product names
+      db.all(`
+        SELECT ti.*, p.name as product_name 
+        FROM transaction_items ti 
+        JOIN products p ON ti.product_id = p.id 
+        WHERE ti.transaction_id = ?
+      `, [transaction_id], async (err, items) => {
         if (err) {
           return res.status(500).json({ error: 'Database error' });
         }
@@ -811,12 +922,22 @@ app.post('/api/print-receipt', authenticateToken, async (req, res) => {
           cashier_name: req.user.username
         };
 
-        // Print receipt
-        if (printerManager) {
-          await printerManager.printReceipt(receiptData);
-          res.json({ message: 'Receipt printed successfully' });
-        } else {
-          res.status(500).json({ error: 'Printer not available' });
+        try {
+          // Try to print the receipt
+          if (printerManager) {
+            await printerManager.printReceipt(receiptData);
+            res.json({ message: 'Receipt printed successfully' });
+          } else {
+            res.json({ message: 'Receipt data prepared successfully (printer not available)' });
+          }
+        } catch (printError) {
+          console.error('Printing error:', printError);
+          // Return receipt data even if printing fails
+          res.json({ 
+            message: 'Receipt data prepared successfully (printing failed)', 
+            error: printError.message,
+            receiptData: receiptData 
+          });
         }
       });
     });
@@ -861,8 +982,33 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Supermarket POS Server running on port ${PORT}`);
   console.log(`Database: ${dbPath}`);
   console.log(`Default admin credentials: admin/admin`);
+  
+  // Initialize printer with better error handling
+  if (printerManager) {
+    try {
+      console.log('Initializing printer manager...');
+      const success = await printerManager.initialize();
+      if (success) {
+        const status = await printerManager.getPrinterStatus();
+        if (status.mode === 'mock') {
+          console.log('✅ Printer initialized in mock mode - receipts will be logged to console');
+        } else {
+          console.log('✅ Printer initialized successfully with hardware');
+        }
+      } else {
+        console.log('⚠️  Printer initialization failed - receipts will be logged to console');
+      }
+    } catch (error) {
+      console.error('❌ Printer initialization error:', error.message);
+      console.log('⚠️  Receipt printing will be logged to console only');
+    }
+  } else {
+    console.log('⚠️  Printer manager not available - receipts will be logged to console');
+  }
+  
+  console.log(`🚀 Server is ready to handle requests on port ${PORT}`);
 });
